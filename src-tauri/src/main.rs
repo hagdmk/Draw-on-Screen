@@ -98,6 +98,7 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
         // Pass-through mode lets clicks reach the apps underneath while strokes stay visible.
         let _ = window.set_ignore_cursor_events(!drawing);
     }
+    raise_toolbar(app);
     if drawing != was_drawing {
         let shortcuts = app.global_shortcut();
         for (shortcut, _) in drawing_shortcuts() {
@@ -106,6 +107,17 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
         }
     }
     let _ = app.emit("draw-mode", drawing);
+}
+
+/// Puts the toolbar back above the overlay without focusing it.
+/// On Windows, changing the overlay's pass-through flag re-shows it, which lifts it over the
+/// toolbar; it would then swallow every toolbar click while drawing mode is on.
+fn raise_toolbar(app: &AppHandle) {
+    if let Some(toolbar) = app.get_webview_window(TOOLBAR) {
+        // Re-applying "always on top" moves the window to the top of the always-on-top group.
+        let _ = toolbar.set_always_on_top(false);
+        let _ = toolbar.set_always_on_top(true);
+    }
 }
 
 fn toggle_draw_mode(app: &AppHandle) {
