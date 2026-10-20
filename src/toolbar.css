@@ -1,0 +1,220 @@
+:root {
+  --panel: rgba(28, 28, 30, 0.92);
+  --hover: rgba(255, 255, 255, 0.1);
+  --active: rgba(255, 255, 255, 0.22);
+  --text: #f2f2f7;
+  --muted: #8e8e93;
+  --accent: #0a84ff;
+}
+
+html,
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  font: 12px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+#panel {
+  margin: 4px;
+  padding: 4px 6px 8px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 20px;
+  cursor: grab;
+}
+
+.grip {
+  flex: 1;
+  height: 4px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+button {
+  border: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+
+.icon-button.small {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+}
+
+.icon-button:hover {
+  background: var(--hover);
+}
+
+.icon-button[aria-pressed="true"] {
+  background: var(--active);
+}
+
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-button.small svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  margin: 6px 0 8px;
+  border-radius: 9px;
+  background: var(--hover);
+  font-weight: 600;
+}
+
+.mode[aria-pressed="true"] {
+  background: var(--accent);
+}
+
+.mode svg {
+  width: 16px;
+  height: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 36px);
+  gap: 4px;
+  justify-content: center;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#actions {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.swatch {
+  width: 36px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.swatch::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.swatch:hover {
+  background: var(--hover);
+}
+
+.swatch[aria-pressed="true"] {
+  background: var(--active);
+}
+
+.swatch.custom {
+  position: relative;
+}
+
+.swatch.custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.size {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.size::before {
+  content: "";
+  width: var(--dot);
+  height: var(--dot);
+  border-radius: 50%;
+  background: var(--text);
+}
+
+.size:hover {
+  background: var(--hover);
+}
+
+.size[aria-pressed="true"] {
+  background: var(--active);
+}
+
+#settings-view {
+  padding: 4px 2px;
+}
+
+#settings-view h2 {
+  margin: 4px 0 12px;
+  font-size: 13px;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.text-button {
+  display: block;
+  width: 100%;
+  height: 30px;
+  margin-top: 6px;
+  border-radius: 8px;
+  background: var(--hover);
+}
+
+.text-button.danger {
+  color: #ff6961;
+}
