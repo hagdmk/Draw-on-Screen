@@ -36,6 +36,11 @@ fi
 
 remote_version="$(curl -fsSL "$BASE_URL/version.txt" 2>/dev/null || true)"
 local_version="$(cat "$BIN_DIR/version.txt" 2>/dev/null || true)"
+# Accept only a plain tag like v1.2.3 from the network.
+if [[ -n "$remote_version" && ! "$remote_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Ignoring an unexpected version.txt from the release."
+  remote_version=""
+fi
 
 if [[ -z "$remote_version" ]]; then
   if [[ -d "$BIN_DIR/$APP_NAME" ]]; then
@@ -52,7 +57,7 @@ elif [[ "$remote_version" != "$local_version" || ! -d "$BIN_DIR/$APP_NAME" ]]; t
   curl -fL --progress-bar "$BASE_URL/$ASSET" -o "$tmp"
   expected="$(curl -fsSL "$BASE_URL/$ASSET.sha256" | awk '{print $1}')"
   actual="$(shasum -a 256 "$tmp" | awk '{print $1}')"
-  if [[ -z "$expected" || "$expected" != "$actual" ]]; then
+  if [[ ! "$expected" =~ ^[0-9a-f]{64}$ || "$expected" != "$actual" ]]; then
     rm -f "$tmp"
     fail "Checksum mismatch; the download was discarded."
   fi
