@@ -55,12 +55,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         # Piped input answers the "pause" shown on failure, so a failure cannot hang the job.
+        # The launcher downloads the latest release when it can (public repository) and
+        # builds from source otherwise, so only the installed result is checked.
         run: |
           echo.| call run-windows.bat
           if errorlevel 1 exit /b 1
           if not exist "%LOCALAPPDATA%\Programs\Draw on Screen\draw-on-screen.exe" exit /b 1
           if not exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Draw on Screen.lnk" exit /b 1
-          type "%LOCALAPPDATA%\Programs\Draw on Screen\version.txt"
           echo.| call run-windows.bat --uninstall
           if exist "%LOCALAPPDATA%\Programs\Draw on Screen" exit /b 1
           if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Draw on Screen.lnk" exit /b 1
@@ -69,6 +70,5 @@ jobs:
         run: |
           ./run-macos.command
           test -d "$HOME/Applications/Draw on Screen.app"
-          cat "$HOME/Library/Application Support/io.github.hagdmk.drawonscreen/launcher-version.txt"
           ./run-macos.command --uninstall
           test ! -e "$HOME/Applications/Draw on Screen.app"
