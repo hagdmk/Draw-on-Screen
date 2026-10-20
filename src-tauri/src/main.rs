@@ -7,7 +7,9 @@ use tauri::menu::{CheckMenuItem, Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 #[cfg(target_os = "macos")]
 use tauri::RunEvent;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow, Wry};
+use tauri::{
+    AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow, WebviewWindowBuilder, Wry,
+};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -98,6 +100,7 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
         // Pass-through mode lets clicks reach the apps underneath while strokes stay visible.
         let _ = window.set_ignore_cursor_events(!drawing);
     }
+    #[cfg(not(windows))]
     raise_toolbar(app);
     if drawing != was_drawing {
         let shortcuts = app.global_shortcut();
@@ -109,9 +112,10 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
     let _ = app.emit("draw-mode", drawing);
 }
 
-/// Puts the toolbar back above the overlay without focusing it.
-/// On Windows, changing the overlay's pass-through flag re-shows it, which lifts it over the
-/// toolbar; it would then swallow every toolbar click while drawing mode is on.
+/// Puts the toolbar back above the overlay without focusing it, so the overlay never covers
+/// the toolbar after drawing mode changes. Windows does not need this: there the toolbar is
+/// owned by the overlay (see `create_toolbar`).
+#[cfg(not(windows))]
 fn raise_toolbar(app: &AppHandle) {
     if let Some(toolbar) = app.get_webview_window(TOOLBAR) {
         // Re-applying "always on top" moves the window to the top of the always-on-top group.
@@ -216,6 +220,31 @@ fn place_toolbar(toolbar: &WebviewWindow) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Creates the toolbar from its tauri.conf.json entry (marked `create: false`).
+fn create_toolbar(app: &AppHandle, overlay: &WebviewWindow) -> tauri::Result<WebviewWindow> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == TOOLBAR)
+        .expect("toolbar window is defined in tauri.conf.json")
+        .clone();
+    let builder = WebviewWindowBuilder::from_config(app, &config)?;
+    // On Windows the overlay is raised above other always-on-top windows whenever it takes
+    // focus, e.g. when a stroke starts. An owned window always stays above its owner, so
+    // making the overlay the toolbar's owner keeps the toolbar clickable while drawing.
+    #[cfg(windows)]
+    let builder = builder.parent(overlay)?;
+    #[cfg(not(windows))]
+    let _ = overlay;
+    let toolbar = builder.build()?;
+    // Owned windows get no taskbar button by default; add it back.
+    #[cfg(windows)]
+    let _ = toolbar.set_skip_taskbar(false);
+    Ok(toolbar)
+}
+
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show toolbar", true, None::<&str>)?;
     let toggle = MenuItem::with_id(app, "toggle", "Toggle drawing", true, None::<&str>)?;
@@ -288,9 +317,7 @@ fn main() {
             overlay.set_ignore_cursor_events(true)?;
             overlay.show()?;
 
-            let toolbar = app
-                .get_webview_window(TOOLBAR)
-                .expect("toolbar window is defined in tauri.conf.json");
+            let toolbar = create_toolbar(app.handle(), &overlay)?;
             toolbar.set_visible_on_all_workspaces(true)?;
             place_toolbar(&toolbar)?;
             toolbar.show()?;
