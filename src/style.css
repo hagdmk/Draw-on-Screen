@@ -32,5 +32,10 @@ body.drawing #board {
   background: rgba(20, 20, 20, 0.75);
   color: #fff;
   font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  white-space: nowrap;
   pointer-events: none;
+}
+
+body.drawing[data-tool="eraser"] #board {
+  cursor: cell;
 }

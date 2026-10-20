@@ -1,7 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The overlay page may only use core events and this app's own commands.",
-  "windows": ["overlay"],
-  "permissions": ["core:default"]
+  "description": "The app's pages may only use core events, dragging the toolbar, and this app's own commands.",
+  "windows": [
+    "overlay",
+    "toolbar"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging"
+  ]
 }
