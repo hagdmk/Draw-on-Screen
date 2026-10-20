@@ -49,7 +49,7 @@ if [[ -z "$remote_version" ]]; then
     echo "No release is available yet; building from source."
     build_from_source
   else
-    fail "No release is available yet and Rust is not installed. See README.md, 'Build from source'."
+    fail "Could not get the latest release from github.com/$REPO. Either no release exists yet, the repository is private, or you are offline. To build locally instead, install Rust and see README.md, 'Build from source'."
   fi
 elif [[ "$remote_version" != "$local_version" || ! -d "$BIN_DIR/$APP_NAME" ]]; then
   echo "Downloading Draw on Screen $remote_version..."
