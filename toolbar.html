@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Draw on Screen</title>
+    <link rel="stylesheet" href="/src/toolbar.css" />
+  </head>
+  <body>
+    <div id="panel">
+      <header data-tauri-drag-region>
+        <span class="grip" data-tauri-drag-region></span>
+        <button id="minimize" class="icon-button small" title="Minimize toolbar" aria-label="Minimize toolbar"></button>
+      </header>
+      <div id="main-view">
+        <button id="mode" class="mode" title="Start / stop drawing (Ctrl/Cmd+Shift+D)"></button>
+        <section id="tools" class="grid" aria-label="Tools"></section>
+        <section id="colors" class="grid" aria-label="Colors"></section>
+        <section id="sizes" class="row" aria-label="Thickness"></section>
+        <section id="actions" class="grid" aria-label="Actions"></section>
+      </div>
+      <div id="settings-view" hidden>
+        <h2>Settings</h2>
+        <label class="switch">
+          <input id="autostart" type="checkbox" />
+          <span>Launch at startup</span>
+        </label>
+        <button id="quit" class="text-button danger">Quit</button>
+        <button id="back" class="text-button">Back</button>
+      </div>
+    </div>
+    <script type="module" src="/src/toolbar.ts"></script>
+  </body>
+</html>
