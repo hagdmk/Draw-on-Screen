@@ -1,6 +1,6 @@
 [package]
 name = "draw-on-screen"
-version = "0.1.0"
+version = "0.2.0"
 description = "Draw on top of your screen on macOS and Windows"
 edition = "2021"
 publish = false
@@ -10,7 +10,9 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
+tauri-plugin-autostart = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
 
 # Small, fast release binary: this app is meant to stay light in memory and on disk.
 [profile.release]

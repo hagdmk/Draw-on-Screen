@@ -51,20 +51,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Run Windows launcher against the latest release
+      - name: Install, start and uninstall with the Windows launcher
         if: runner.os == 'Windows'
         shell: cmd
         # Piped input answers the "pause" shown on failure, so a failure cannot hang the job.
         run: |
           echo.| call run-windows.bat
           if errorlevel 1 exit /b 1
-          if not exist bin\windows\draw-on-screen.exe exit /b 1
-          type bin\windows\version.txt
-          taskkill /im draw-on-screen.exe /f
-      - name: Run macOS launcher against the latest release
+          if not exist "%LOCALAPPDATA%\Programs\Draw on Screen\draw-on-screen.exe" exit /b 1
+          if not exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Draw on Screen.lnk" exit /b 1
+          type "%LOCALAPPDATA%\Programs\Draw on Screen\version.txt"
+          echo.| call run-windows.bat --uninstall
+          if exist "%LOCALAPPDATA%\Programs\Draw on Screen" exit /b 1
+          if exist "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Draw on Screen.lnk" exit /b 1
+      - name: Install, start and uninstall with the macOS launcher
         if: runner.os == 'macOS'
         run: |
           ./run-macos.command
-          test -d "bin/macos/Draw on Screen.app"
-          cat bin/macos/version.txt
-          osascript -e 'quit app "Draw on Screen"' || true
+          test -d "$HOME/Applications/Draw on Screen.app"
+          cat "$HOME/Library/Application Support/io.github.hagdmk.drawonscreen/launcher-version.txt"
+          ./run-macos.command --uninstall
+          test ! -e "$HOME/Applications/Draw on Screen.app"
