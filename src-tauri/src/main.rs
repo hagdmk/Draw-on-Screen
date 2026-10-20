@@ -100,8 +100,6 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
         // Pass-through mode lets clicks reach the apps underneath while strokes stay visible.
         let _ = window.set_ignore_cursor_events(!drawing);
     }
-    #[cfg(not(windows))]
-    raise_toolbar(app);
     if drawing != was_drawing {
         let shortcuts = app.global_shortcut();
         for (shortcut, _) in drawing_shortcuts() {
@@ -110,18 +108,6 @@ fn apply_draw_mode(app: &AppHandle, drawing: bool) {
         }
     }
     let _ = app.emit("draw-mode", drawing);
-}
-
-/// Puts the toolbar back above the overlay without focusing it, so the overlay never covers
-/// the toolbar after drawing mode changes. Windows does not need this: there the toolbar is
-/// owned by the overlay (see `create_toolbar`).
-#[cfg(not(windows))]
-fn raise_toolbar(app: &AppHandle) {
-    if let Some(toolbar) = app.get_webview_window(TOOLBAR) {
-        // Re-applying "always on top" moves the window to the top of the always-on-top group.
-        let _ = toolbar.set_always_on_top(false);
-        let _ = toolbar.set_always_on_top(true);
-    }
 }
 
 fn toggle_draw_mode(app: &AppHandle) {
@@ -236,13 +222,34 @@ fn create_toolbar(app: &AppHandle, overlay: &WebviewWindow) -> tauri::Result<Web
     // making the overlay the toolbar's owner keeps the toolbar clickable while drawing.
     #[cfg(windows)]
     let builder = builder.parent(overlay)?;
-    #[cfg(not(windows))]
-    let _ = overlay;
     let toolbar = builder.build()?;
     // Owned windows get no taskbar button by default; add it back.
     #[cfg(windows)]
     let _ = toolbar.set_skip_taskbar(false);
+    #[cfg(target_os = "macos")]
+    lift_above(&toolbar, overlay);
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let _ = overlay;
     Ok(toolbar)
+}
+
+/// Puts `window` one window level above `below`. On macOS both windows start on the floating
+/// level, where clicking the overlay brings it to the front and covers the toolbar; a higher
+/// level keeps the toolbar on top no matter which window was clicked last.
+#[cfg(target_os = "macos")]
+fn lift_above(window: &WebviewWindow, below: &WebviewWindow) {
+    use objc2::{msg_send, runtime::AnyObject};
+    let (Ok(window), Ok(below)) = (window.ns_window(), below.ns_window()) else {
+        return;
+    };
+    // SAFETY: both pointers are live NSWindow objects owned by Tauri, and `setup` runs on the
+    // main thread, as AppKit requires.
+    unsafe {
+        let window = &*(window as *const AnyObject);
+        let below = &*(below as *const AnyObject);
+        let level: isize = msg_send![below, level];
+        let _: () = msg_send![window, setLevel: level + 1];
+    }
 }
 
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
