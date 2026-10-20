@@ -28,10 +28,11 @@ set "REMOTE_VERSION="
 set "LOCAL_VERSION="
 curl -fsSL "%BASE_URL%/version.txt" -o "%BIN_DIR%\version.remote" 2>nul
 if errorlevel 1 goto read_local
-rem Downloaded text is only read into a variable when every line matches a strict pattern,
+rem Downloaded text is only read into a variable after it matches a strict pattern,
 rem so it can never inject batch syntax such as "&" or "|" when expanded.
-findstr /v /r /x "v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*" "%BIN_DIR%\version.remote" >nul
-if not errorlevel 1 (
+rem PowerShell does the check because findstr rejects a last line without a line break.
+powershell -NoProfile -NonInteractive -Command "if ((Get-Content -Raw -LiteralPath 'bin\windows\version.remote').Trim() -cmatch '^v\d+\.\d+\.\d+$') { exit 0 } else { exit 1 }" >nul 2>nul
+if errorlevel 1 (
   echo Ignoring an unexpected version.txt from the release.
   goto read_local
 )
@@ -47,8 +48,8 @@ curl -fL --progress-bar "%BASE_URL%/%ASSET%" -o "%BIN_DIR%\download.tmp"
 if errorlevel 1 goto fail
 curl -fsSL "%BASE_URL%/%ASSET%.sha256" -o "%BIN_DIR%\download.sha256"
 if errorlevel 1 goto fail
-findstr /v /r /x /c:"[0-9a-f]*  %ASSET%" "%BIN_DIR%\download.sha256" >nul
-if not errorlevel 1 (
+powershell -NoProfile -NonInteractive -Command "if ((Get-Content -Raw -LiteralPath 'bin\windows\download.sha256').Trim() -cmatch '^[0-9a-f]{64}  draw-on-screen-windows-x64\.exe$') { exit 0 } else { exit 1 }" >nul 2>nul
+if errorlevel 1 (
   del /q "%BIN_DIR%\download.tmp"
   echo The checksum file has an unexpected format; the download was discarded.
   goto fail
@@ -86,7 +87,9 @@ if not errorlevel 1 (
   echo No release is available yet; building from source.
   goto build
 )
-echo No release is available yet and Rust is not installed. See README.md, "Build from source".
+echo Could not get the latest release from github.com/%REPO%.
+echo Either no release exists yet, the repository is private, or you are offline.
+echo To build locally instead, install Rust and see README.md, "Build from source".
 goto fail
 
 :build
