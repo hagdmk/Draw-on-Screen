@@ -1,0 +1,73 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish prebuilt binaries that the run scripts download.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npx tauri build --no-bundle
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          $name = "draw-on-screen-windows-x64.exe"
+          Copy-Item src-tauri/target/release/draw-on-screen.exe "out/$name"
+          $hash = (Get-FileHash "out/$name" -Algorithm SHA256).Hash.ToLower()
+          [IO.File]::WriteAllText("out/$name.sha256", "$hash  $name")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/*
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - run: npm ci
+      # Universal build runs on both Apple Silicon and Intel Macs; ad-hoc signed (see tauri.conf.json).
+      - run: npx tauri build --target universal-apple-darwin --bundles app
+      - name: Package
+        run: |
+          mkdir -p out
+          name=draw-on-screen-macos-universal.tar.gz
+          tar -czf "out/$name" -C src-tauri/target/universal-apple-darwin/release/bundle/macos "Draw on Screen.app"
+          (cd out && shasum -a 256 "$name" > "$name.sha256")
+          printf '%s' "$GITHUB_REF_NAME" > out/version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: out/*
+
+  publish:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
