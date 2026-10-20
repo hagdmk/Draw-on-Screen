@@ -1,6 +1,6 @@
 [package]
 name = "draw-on-screen"
-version = "0.2.1"
+version = "0.2.2"
 description = "Draw on top of your screen on macOS and Windows"
 edition = "2021"
 publish = false
