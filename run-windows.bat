@@ -27,7 +27,16 @@ if errorlevel 1 (
 set "REMOTE_VERSION="
 set "LOCAL_VERSION="
 curl -fsSL "%BASE_URL%/version.txt" -o "%BIN_DIR%\version.remote" 2>nul
-if not errorlevel 1 set /p REMOTE_VERSION=<"%BIN_DIR%\version.remote"
+if errorlevel 1 goto read_local
+rem Downloaded text is only read into a variable when every line matches a strict pattern,
+rem so it can never inject batch syntax such as "&" or "|" when expanded.
+findstr /v /r /x "v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*" "%BIN_DIR%\version.remote" >nul
+if not errorlevel 1 (
+  echo Ignoring an unexpected version.txt from the release.
+  goto read_local
+)
+set /p REMOTE_VERSION=<"%BIN_DIR%\version.remote"
+:read_local
 if exist "%BIN_DIR%\version.txt" set /p LOCAL_VERSION=<"%BIN_DIR%\version.txt"
 
 if not defined REMOTE_VERSION goto offline
@@ -38,6 +47,12 @@ curl -fL --progress-bar "%BASE_URL%/%ASSET%" -o "%BIN_DIR%\download.tmp"
 if errorlevel 1 goto fail
 curl -fsSL "%BASE_URL%/%ASSET%.sha256" -o "%BIN_DIR%\download.sha256"
 if errorlevel 1 goto fail
+findstr /v /r /x /c:"[0-9a-f]*  %ASSET%" "%BIN_DIR%\download.sha256" >nul
+if not errorlevel 1 (
+  del /q "%BIN_DIR%\download.tmp"
+  echo The checksum file has an unexpected format; the download was discarded.
+  goto fail
+)
 
 set "EXPECTED="
 set "ACTUAL="
