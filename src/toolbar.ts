@@ -1,4 +1,4 @@
-import { RAINBOW, type Tool, type ToolState } from "./core/types";
+import { RAINBOW, type ScreenMode, type Tool, type ToolState } from "./core/types";
 import {
   getAutostart,
   getDrawMode,
@@ -55,6 +55,7 @@ let drawing = false;
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const modeButton = $<HTMLButtonElement>("#mode");
 const autostartBox = $<HTMLInputElement>("#autostart");
+const screenRadios = [...document.querySelectorAll<HTMLInputElement>('input[name="screens"]')];
 
 function button(className: string, label: string, html = ""): HTMLButtonElement {
   const el = document.createElement("button");
@@ -129,6 +130,7 @@ function render(): void {
   customSwatch.style.setProperty("--swatch", preset ? "#888" : state.color);
   if (!preset) customInput.value = state.color;
   for (const { value, el } of sizeButtons) el.setAttribute("aria-pressed", String(value === state.size));
+  for (const radio of screenRadios) radio.checked = radio.value === state.screens;
   modeButton.setAttribute("aria-pressed", String(drawing));
   modeButton.innerHTML = drawing ? `${icons.pen}<span>Drawing</span>` : `${icons.pointer}<span>Draw</span>`;
 }
@@ -143,6 +145,9 @@ $("#minimize").innerHTML = icons.minimize;
 $("#minimize").addEventListener("click", () => void minimizeToolbar());
 $("#back").addEventListener("click", () => showSettings(false));
 $("#quit").addEventListener("click", () => void quitApp());
+for (const radio of screenRadios) {
+  radio.addEventListener("change", () => update({ screens: radio.value as ScreenMode }));
+}
 autostartBox.addEventListener("change", async () => {
   autostartBox.checked = await setAutostart(autostartBox.checked);
 });

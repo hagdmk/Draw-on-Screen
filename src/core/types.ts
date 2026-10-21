@@ -1,4 +1,7 @@
-/** A sampled input point: x, y in CSS pixels and pen pressure in [0, 1]. */
+/**
+ * A sampled input point: x, y in desktop coordinates (shared by every screen, see main.ts)
+ * and pen pressure in [0, 1].
+ */
 export type InputPoint = [x: number, y: number, pressure: number];
 export type Point = [x: number, y: number];
 
@@ -9,11 +12,19 @@ export type Tool = FreehandTool | ShapeTool | "eraser";
 /** Special color value: the stroke cycles through hues along its length. */
 export const RAINBOW = "rainbow";
 
+/**
+ * How drawing behaves with several screens:
+ * - "single": a stroke stays on the screen where it started (the screen under the pointer).
+ * - "span": a stroke carries on across screens as the pointer moves between them.
+ */
+export type ScreenMode = "single" | "span";
+
 /** What the toolbar currently has selected. */
 export interface ToolState {
   tool: Tool;
   color: string;
   size: number;
+  screens: ScreenMode;
 }
 
 interface ItemBase {

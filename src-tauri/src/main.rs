@@ -1,14 +1,19 @@
 // Hide the console window on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+use serde::Serialize;
 
 use tauri::menu::{CheckMenuItem, Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 #[cfg(target_os = "macos")]
 use tauri::RunEvent;
+use tauri::utils::config::WindowConfig;
 use tauri::{
-    AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow, WebviewWindowBuilder, Wry,
+    AppHandle, Emitter, Manager, Monitor, PhysicalPosition, State, WebviewWindow,
+    WebviewWindowBuilder, Wry,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -31,6 +36,19 @@ const TOOL_KEYS: [Code; 8] = [
 
 /// True while the overlay captures the mouse for drawing; false while clicks pass through.
 struct DrawMode(AtomicBool);
+
+/// Where an overlay sits in desktop coordinates, the space shared by all screens: the
+/// overlay's client point (cx, cy) is the desktop point (x + cx * k, y + cy * k).
+#[derive(Clone, Serialize)]
+struct OverlayGeometry {
+    x: f64,
+    y: f64,
+    /// Desktop units per CSS pixel; 1 unless screens use different scaling.
+    k: f64,
+}
+
+/// One overlay window per screen, by label.
+struct Overlays(HashMap<String, OverlayGeometry>);
 
 /// The tray's "Launch at startup" item, kept so its check mark can follow the toolbar setting.
 struct AutostartMenuItem(CheckMenuItem<Wry>);
@@ -96,9 +114,13 @@ fn handle_shortcut(app: &AppHandle, shortcut: &Shortcut) {
 
 fn apply_draw_mode(app: &AppHandle, drawing: bool) {
     let was_drawing = app.state::<DrawMode>().0.swap(drawing, Ordering::SeqCst);
-    if let Some(window) = app.get_webview_window(OVERLAY) {
-        // Pass-through mode lets clicks reach the apps underneath while strokes stay visible.
-        let _ = window.set_ignore_cursor_events(!drawing);
+    if let Some(overlays) = app.try_state::<Overlays>() {
+        for label in overlays.0.keys() {
+            if let Some(window) = app.get_webview_window(label) {
+                // Pass-through mode lets clicks reach the apps underneath while strokes stay visible.
+                let _ = window.set_ignore_cursor_events(!drawing);
+            }
+        }
     }
     if drawing != was_drawing {
         let shortcuts = app.global_shortcut();
@@ -162,6 +184,11 @@ fn set_draw_mode(app: AppHandle, drawing: bool) {
 }
 
 #[tauri::command]
+fn overlay_geometry(window: WebviewWindow, overlays: State<'_, Overlays>) -> Option<OverlayGeometry> {
+    overlays.0.get(window.label()).cloned()
+}
+
+#[tauri::command]
 fn get_autostart(app: AppHandle) -> bool {
     autostart_enabled(&app)
 }
@@ -183,13 +210,114 @@ fn quit_app(app: AppHandle) {
     app.exit(0);
 }
 
-/// Stretches the overlay over the primary display. Multi-monitor support comes later.
-fn cover_primary_monitor(window: &WebviewWindow) -> tauri::Result<()> {
-    if let Some(monitor) = window.primary_monitor()? {
+fn window_config(app: &AppHandle, label: &str) -> WindowConfig {
+    app.config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == label)
+        .unwrap_or_else(|| panic!("{label} window is defined in tauri.conf.json"))
+        .clone()
+}
+
+/// Desktop coordinates for a screen. macOS reports screen positions consistently in points;
+/// Windows reports physical pixels, which are divided by the primary screen's scale so one
+/// desktop unit matches a CSS pixel on the primary screen.
+fn desktop_geometry(monitor: &Monitor, primary_scale: f64) -> OverlayGeometry {
+    #[cfg(target_os = "macos")]
+    let unit = {
+        let _ = primary_scale;
+        monitor.scale_factor()
+    };
+    #[cfg(not(target_os = "macos"))]
+    let unit = primary_scale;
+    let position = monitor.position();
+    OverlayGeometry {
+        x: f64::from(position.x) / unit,
+        y: f64::from(position.y) / unit,
+        k: monitor.scale_factor() / unit,
+    }
+}
+
+/// Stretches an overlay over one screen.
+fn cover_monitor(window: &WebviewWindow, monitor: &Monitor) -> tauri::Result<()> {
+    // macOS converts physical values with the scale of the screen the window is on now, which
+    // is wrong for a screen with a different scale, so it gets the screen's own logical rect.
+    #[cfg(target_os = "macos")]
+    {
+        let scale = monitor.scale_factor();
+        window.set_position(monitor.position().to_logical::<f64>(scale))?;
+        window.set_size(monitor.size().to_logical::<f64>(scale))?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
         window.set_position(*monitor.position())?;
         window.set_size(*monitor.size())?;
     }
     Ok(())
+}
+
+/// Opens one overlay per screen, primary screen first, and returns them in that order.
+/// Screens plugged in later are picked up on the next launch.
+fn create_overlays(app: &AppHandle) -> tauri::Result<Vec<WebviewWindow>> {
+    let primary = app.primary_monitor()?;
+    let primary_scale = primary.as_ref().map_or(1.0, Monitor::scale_factor);
+    let mut monitors = app.available_monitors()?;
+    if let Some(primary) = &primary {
+        monitors.sort_by_key(|monitor| monitor.position() != primary.position());
+    }
+    let screens: Vec<Option<Monitor>> = if monitors.is_empty() {
+        vec![None]
+    } else {
+        monitors.into_iter().map(Some).collect()
+    };
+    let label = |index: usize| {
+        if index == 0 {
+            OVERLAY.to_string()
+        } else {
+            format!("{OVERLAY}-{index}")
+        }
+    };
+
+    // Registered before any overlay page loads and asks for its geometry.
+    let geometry = screens
+        .iter()
+        .enumerate()
+        .map(|(index, screen)| {
+            let geometry = match screen {
+                Some(monitor) => desktop_geometry(monitor, primary_scale),
+                None => OverlayGeometry { x: 0.0, y: 0.0, k: 1.0 },
+            };
+            (label(index), geometry)
+        })
+        .collect();
+    app.manage(Overlays(geometry));
+
+    let config = window_config(app, OVERLAY);
+    let mut overlays: Vec<WebviewWindow> = Vec::new();
+    for (index, screen) in screens.iter().enumerate() {
+        let mut overlay_config = config.clone();
+        overlay_config.label = label(index);
+        let builder = WebviewWindowBuilder::from_config(app, &overlay_config)?;
+        // On Windows each overlay is owned by the previous one and the toolbar by the last
+        // (see `create_toolbar`). Owned windows always stay above their owner, so the toolbar
+        // stays above every overlay.
+        #[cfg(windows)]
+        let builder = match overlays.last() {
+            Some(owner) => builder.parent(owner)?,
+            None => builder,
+        };
+        let overlay = builder.build()?;
+        if let Some(monitor) = screen {
+            cover_monitor(&overlay, monitor)?;
+        }
+        // Keep the overlay on every desktop/Space, not just the one it opened on.
+        overlay.set_visible_on_all_workspaces(true)?;
+        overlay.set_ignore_cursor_events(true)?;
+        overlay.show()?;
+        overlays.push(overlay);
+    }
+    Ok(overlays)
 }
 
 /// Places the toolbar at the right edge of the primary display, vertically centered.
@@ -206,20 +334,13 @@ fn place_toolbar(toolbar: &WebviewWindow) -> tauri::Result<()> {
     Ok(())
 }
 
-/// Creates the toolbar from its tauri.conf.json entry (marked `create: false`).
+/// Creates the toolbar from its tauri.conf.json entry (marked `create: false`), above `overlay`,
+/// the last overlay `create_overlays` opened.
 fn create_toolbar(app: &AppHandle, overlay: &WebviewWindow) -> tauri::Result<WebviewWindow> {
-    let config = app
-        .config()
-        .app
-        .windows
-        .iter()
-        .find(|window| window.label == TOOLBAR)
-        .expect("toolbar window is defined in tauri.conf.json")
-        .clone();
-    let builder = WebviewWindowBuilder::from_config(app, &config)?;
-    // On Windows the overlay is raised above other always-on-top windows whenever it takes
+    let builder = WebviewWindowBuilder::from_config(app, &window_config(app, TOOLBAR))?;
+    // On Windows an overlay is raised above other always-on-top windows whenever it takes
     // focus, e.g. when a stroke starts. An owned window always stays above its owner, so
-    // making the overlay the toolbar's owner keeps the toolbar clickable while drawing.
+    // making the last overlay the toolbar's owner keeps the toolbar clickable while drawing.
     #[cfg(windows)]
     let builder = builder.parent(overlay)?;
     let toolbar = builder.build()?;
@@ -307,6 +428,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_draw_mode,
             set_draw_mode,
+            overlay_geometry,
             get_autostart,
             set_autostart,
             minimize_toolbar,
@@ -315,16 +437,9 @@ fn main() {
         .setup(|app| {
             apply_autostart_default(app.handle());
 
-            let overlay = app
-                .get_webview_window(OVERLAY)
-                .expect("overlay window is defined in tauri.conf.json");
-            cover_primary_monitor(&overlay)?;
-            // Keep the overlay on every desktop/Space, not just the one it opened on.
-            overlay.set_visible_on_all_workspaces(true)?;
-            overlay.set_ignore_cursor_events(true)?;
-            overlay.show()?;
-
-            let toolbar = create_toolbar(app.handle(), &overlay)?;
+            let overlays = create_overlays(app.handle())?;
+            let last_overlay = overlays.last().expect("at least one overlay is created");
+            let toolbar = create_toolbar(app.handle(), last_overlay)?;
             toolbar.set_visible_on_all_workspaces(true)?;
             place_toolbar(&toolbar)?;
             toolbar.show()?;

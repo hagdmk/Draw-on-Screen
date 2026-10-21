@@ -2,9 +2,14 @@ import type { ToolState } from "./core/types";
 
 const STORAGE_KEY = "draw-on-screen:tool";
 
-export const DEFAULT_TOOL_STATE: ToolState = { tool: "pen", color: "#ff3b30", size: 6 };
+export const DEFAULT_TOOL_STATE: ToolState = {
+  tool: "pen",
+  color: "#ff3b30",
+  size: 6,
+  screens: "span",
+};
 
-/** Last tool, color and thickness, remembered between launches. Storage may be unavailable. */
+/** Last tool, color, thickness and screen mode, remembered between launches. Storage may be unavailable. */
 export function loadToolState(): ToolState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

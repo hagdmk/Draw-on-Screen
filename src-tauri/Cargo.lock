@@ -851,9 +851,10 @@ dependencies = [
 
 [[package]]
 name = "draw-on-screen"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "objc2",
+ "serde",
  "tauri",
  "tauri-build",
  "tauri-plugin-autostart",
