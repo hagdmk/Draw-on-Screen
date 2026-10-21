@@ -25,6 +25,17 @@
           <input id="autostart" type="checkbox" />
           <span>Launch at startup</span>
         </label>
+        <fieldset class="choice">
+          <legend>Screens</legend>
+          <label title="A stroke stays on the screen where it started">
+            <input type="radio" name="screens" value="single" />
+            <span>One screen</span>
+          </label>
+          <label title="A stroke carries on when the pointer moves to another screen">
+            <input type="radio" name="screens" value="span" />
+            <span>All screens</span>
+          </label>
+        </fieldset>
         <button id="quit" class="text-button danger">Quit</button>
         <button id="back" class="text-button">Back</button>
       </div>

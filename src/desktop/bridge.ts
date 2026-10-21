@@ -1,5 +1,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import type { SceneOp } from "../core/ops";
 import type { ToolState } from "../core/types";
 
 /**
@@ -21,6 +23,43 @@ export async function setDrawMode(drawing: boolean): Promise<void> {
 
 export async function onDrawModeChange(handler: (drawing: boolean) => void): Promise<void> {
   if (inDesktopApp) await listen<boolean>("draw-mode", (event) => handler(event.payload));
+}
+
+/**
+ * Where this overlay sits in desktop coordinates, the space shared by all screens:
+ * a point at client position (cx, cy) is at (x + cx * k, y + cy * k) on the desktop.
+ */
+export interface OverlayGeometry {
+  x: number;
+  y: number;
+  /** Desktop units per CSS pixel; 1 unless screens use different scaling. */
+  k: number;
+}
+
+export async function getOverlayGeometry(): Promise<OverlayGeometry> {
+  const fallback = { x: 0, y: 0, k: 1 };
+  if (!inDesktopApp) return fallback;
+  return (await invoke<OverlayGeometry | null>("overlay_geometry")) ?? fallback;
+}
+
+interface SceneOpsMessage {
+  from: string;
+  ops: SceneOp[];
+}
+
+const windowLabel = inDesktopApp ? getCurrentWindow().label : "overlay";
+
+/** Shares drawing changes made in this overlay with the overlays on the other screens. */
+export async function sendSceneOps(ops: SceneOp[]): Promise<void> {
+  if (inDesktopApp && ops.length > 0) await emit("scene-ops", { from: windowLabel, ops } satisfies SceneOpsMessage);
+}
+
+/** Drawing changes made in the other overlays; this window's own changes are skipped. */
+export async function onSceneOps(handler: (ops: SceneOp[]) => void): Promise<void> {
+  if (!inDesktopApp) return;
+  await listen<SceneOpsMessage>("scene-ops", (event) => {
+    if (event.payload.from !== windowLabel) handler(event.payload.ops);
+  });
 }
 
 export async function sendToolState(state: ToolState): Promise<void> {

@@ -4,6 +4,7 @@
   "description": "The app's pages may only use core events, dragging the toolbar, and this app's own commands.",
   "windows": [
     "overlay",
+    "overlay-*",
     "toolbar"
   ],
   "permissions": [

@@ -40,7 +40,11 @@ A floating toolbar appears at the right edge of the screen and in the taskbar (D
 - Pick a tool to start drawing. The **Draw** button switches between drawing and click-through: in click-through mode your drawing stays visible but clicks go to the apps underneath.
 - Tools: pen, brush, highlighter, line, arrow, rectangle, ellipse, eraser (removes whole strokes). Hold `Shift` for straight 45-degree lines, squares and circles.
 - Colors: eight presets, rainbow, and a custom color picker. Three thicknesses.
-- The gear button opens **Settings**: **Launch at startup** (on by default; your choice is kept) and **Quit**.
+- You can draw on every connected screen. Undo, redo and clear apply to all of them.
+- The gear button opens **Settings**:
+  - **Screens**: **One screen** keeps each stroke on the screen where it started, so it stops at the screen edge. **All screens** (the default) lets a stroke or shape carry on when the pointer moves to another screen.
+  - **Launch at startup** (on by default; your choice is kept).
+  - **Quit**.
 
 The tray icon (Windows notification area, macOS menu bar) has the same options plus **Show toolbar**.
 
@@ -127,5 +131,5 @@ tests/                 Unit tests for the drawing engine
 
 ## Known limitations
 
-- The overlay covers the primary display only. Multi-monitor support is planned.
+- Screens connected or disconnected while the app runs are picked up on the next launch.
 - Whether the overlay shows above macOS apps in native fullscreen still needs testing.
