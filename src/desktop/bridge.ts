@@ -6,9 +6,23 @@ import type { ToolState } from "../core/types";
 
 /**
  * Thin wrapper around the Rust side and the events shared by the overlay and toolbar windows.
- * In a plain browser (npm run dev without Tauri) there is nothing to talk to, so calls are no-ops.
+ * In a plain browser (the tablet web app, or npm run dev without Tauri) there is no Rust side:
+ * events go through an in-page bus instead, so a toolbar and a canvas on one page still talk.
  */
 export const inDesktopApp = isTauri();
+
+const pageBus = new EventTarget();
+
+async function emitEvent(name: string, payload?: unknown): Promise<void> {
+  if (inDesktopApp) await emit(name, payload);
+  else pageBus.dispatchEvent(new CustomEvent(name, { detail: payload }));
+}
+
+async function listenEvent<T>(name: string, handler: (payload: T) => void): Promise<void> {
+  // The in-page listener is added before the first await, so it catches events sent right after.
+  if (!inDesktopApp) pageBus.addEventListener(name, (event) => handler((event as CustomEvent<T>).detail));
+  else await listen<T>(name, (event) => handler(event.payload));
+}
 
 /** Actions the toolbar or a keyboard shortcut asks the overlay to perform. */
 export type Command = "undo" | "redo" | "clear";
@@ -19,10 +33,11 @@ export async function getDrawMode(): Promise<boolean> {
 
 export async function setDrawMode(drawing: boolean): Promise<void> {
   if (inDesktopApp) await invoke("set_draw_mode", { drawing });
+  else await emitEvent("draw-mode", drawing);
 }
 
 export async function onDrawModeChange(handler: (drawing: boolean) => void): Promise<void> {
-  if (inDesktopApp) await listen<boolean>("draw-mode", (event) => handler(event.payload));
+  await listenEvent("draw-mode", handler);
 }
 
 /**
@@ -63,33 +78,33 @@ export async function onSceneOps(handler: (ops: SceneOp[]) => void): Promise<voi
 }
 
 export async function sendToolState(state: ToolState): Promise<void> {
-  if (inDesktopApp) await emit("tool-state", state);
+  await emitEvent("tool-state", state);
 }
 
 export async function onToolState(handler: (state: ToolState) => void): Promise<void> {
-  if (inDesktopApp) await listen<ToolState>("tool-state", (event) => handler(event.payload));
+  await listenEvent("tool-state", handler);
 }
 
 /** The overlay asks for the current tool when it (re)loads; the toolbar answers with sendToolState. */
 export async function requestToolState(): Promise<void> {
-  if (inDesktopApp) await emit("tool-state-request");
+  await emitEvent("tool-state-request");
 }
 
 export async function onToolStateRequest(handler: () => void): Promise<void> {
-  if (inDesktopApp) await listen("tool-state-request", () => handler());
+  await listenEvent("tool-state-request", handler);
 }
 
 export async function sendCommand(command: Command): Promise<void> {
-  if (inDesktopApp) await emit("command", command);
+  await emitEvent("command", command);
 }
 
 export async function onCommand(handler: (command: Command) => void): Promise<void> {
-  if (inDesktopApp) await listen<Command>("command", (event) => handler(event.payload));
+  await listenEvent("command", handler);
 }
 
 /** Number keys pressed while drawing; the toolbar maps them to tools. */
 export async function onToolShortcut(handler: (index: number) => void): Promise<void> {
-  if (inDesktopApp) await listen<number>("tool-shortcut", (event) => handler(event.payload));
+  await listenEvent("tool-shortcut", handler);
 }
 
 export async function getAutostart(): Promise<boolean> {

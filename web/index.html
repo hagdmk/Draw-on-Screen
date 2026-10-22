@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Draw on Screen</title>
+    <meta name="description" content="A whiteboard for drawing and annotating photos with a pen or finger." />
+    <meta name="theme-color" content="#1c1c1e" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Draw" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="stylesheet" href="../src/style.css" />
+    <link rel="stylesheet" href="../src/toolbar.css" />
+    <link rel="stylesheet" href="../src/web.css" />
+  </head>
+  <body class="web">
+    <img id="photo" alt="" hidden />
+    <canvas id="board"></canvas>
+    <div id="hud" hidden></div>
+    <!-- Same panel as toolbar.html; the desktop-only parts are hidden by web.css. -->
+    <div id="panel">
+      <header>
+        <span class="grip"></span>
+        <button id="minimize" class="icon-button small" title="Minimize toolbar" aria-label="Minimize toolbar"></button>
+      </header>
+      <div id="main-view">
+        <button id="mode" class="mode"></button>
+        <section id="tools" class="grid" aria-label="Tools"></section>
+        <section id="colors" class="grid" aria-label="Colors"></section>
+        <section id="sizes" class="row" aria-label="Thickness"></section>
+        <section id="actions" class="grid" aria-label="Actions"></section>
+      </div>
+      <div id="settings-view" hidden>
+        <input id="autostart" type="checkbox" />
+        <input type="radio" name="screens" value="single" />
+        <input type="radio" name="screens" value="span" />
+        <button id="quit"></button>
+        <button id="back"></button>
+      </div>
+    </div>
+    <input id="photo-input" type="file" accept="image/*" hidden />
+    <script type="module" src="../src/web.ts"></script>
+  </body>
+</html>

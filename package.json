@@ -1,11 +1,13 @@
 {
   "name": "draw-on-screen",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "dev:web": "vite --config vite.web.config.ts",
+    "build:web": "tsc --noEmit && vite build --config vite.web.config.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri"

@@ -1,0 +1,49 @@
+/* The tablet web app: the overlay canvas becomes a board and the toolbar floats over it. */
+:root {
+  --board: #ffffff;
+}
+
+body.web {
+  background: var(--board);
+  -webkit-touch-callout: none;
+}
+
+body.web.dark-board {
+  --board: #1c1c1e;
+}
+
+#photo {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+body.web #panel {
+  position: fixed;
+  top: 50%;
+  left: max(12px, env(safe-area-inset-left));
+  width: 92px;
+  margin: 0;
+  transform: translateY(-50%);
+  /* No double-tap zoom on the buttons. */
+  touch-action: manipulation;
+}
+
+/* Keeps the dark panel visible on the dark board. */
+body.web.dark-board #panel {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Desktop-only parts: window controls, click-through mode, settings and the HUD. */
+body.web #panel > header,
+body.web #mode,
+body.web #settings-view,
+body.web #actions [aria-label="Settings"],
+body.web #hud {
+  display: none;
+}
