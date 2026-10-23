@@ -65,8 +65,11 @@ button {
   border-radius: 6px;
 }
 
-.icon-button:hover {
-  background: var(--hover);
+/* Hover only where there is a real pointer; on touch screens it would stick after a tap. */
+@media (hover: hover) {
+  .icon-button:hover {
+    background: var(--hover);
+  }
 }
 
 .icon-button[aria-pressed="true"] {
@@ -146,8 +149,10 @@ button {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
-.swatch:hover {
-  background: var(--hover);
+@media (hover: hover) {
+  .swatch:hover {
+    background: var(--hover);
+  }
 }
 
 .swatch[aria-pressed="true"] {
@@ -181,8 +186,10 @@ button {
   background: var(--text);
 }
 
-.size:hover {
-  background: var(--hover);
+@media (hover: hover) {
+  .size:hover {
+    background: var(--hover);
+  }
 }
 
 .size[aria-pressed="true"] {

@@ -1,6 +1,6 @@
 # Draw on Screen
 
-A lightweight screen annotation tool for macOS and Windows. Draw on top of anything on your screen, then switch back to clicking through to the apps underneath, without losing what you drew.
+A lightweight screen annotation tool for macOS and Windows. Draw on top of anything on your screen, then switch back to clicking through to the apps underneath, without losing what you drew. On iPad and Android tablets it installs as a web app for drawing on a board or on a photo.
 
 Built with [Tauri 2](https://tauri.app): the drawing engine is TypeScript on an HTML canvas, and the native shell is Rust using the operating system's own web view (WebView2 on Windows, WKWebView on macOS). No browser engine is bundled, so the app stays small and light on memory.
 
@@ -77,9 +77,20 @@ The tray icon (Windows notification area, macOS menu bar) has the same options p
 - Launch at startup adds an entry under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; you can also see it in Task Manager > Startup apps.
 - The overlay cannot appear above games running in exclusive fullscreen. Windowed and borderless fullscreen work.
 
-### iPad
+### iPad and Android tablets
 
-An iPad version is planned as a web app you add to the Home Screen. iPadOS does not allow any app to draw over other apps, so it will work as a whiteboard and for annotating photos and screenshots.
+The tablet version is a web app with the same tools. Tablets do not let a web app draw over other apps (iPadOS does not allow it for any app), so it works as a whiteboard and for drawing on photos and screenshots.
+
+Install it from **https://hagdmk.github.io/Draw-on-Screen/**:
+
+- **iPad:** open the link in Safari, tap the Share button, then **Add to Home Screen**.
+- **Galaxy Tab and other Android tablets:** open the link in Chrome or Samsung Internet, open the menu, then **Install app** or **Add to Home screen**.
+
+It then opens full screen from its icon and works offline. Updates arrive on their own the next time it opens online.
+
+- Draw with Apple Pencil, S Pen or a finger. Once a pen has been used, touches are ignored so your palm can rest on the screen.
+- Extra buttons: **Add photo** (tap again to remove it), **Save as image** (the share sheet offers Save Image or Files; elsewhere it downloads a PNG), and **Board color** (white or dark).
+- The drawing is not kept when the app is closed; save it as an image first.
 
 ## Build from source
 
@@ -100,6 +111,7 @@ This builds the app and installs it the same way as a downloaded release. The la
 ```sh
 npm install
 npm run dev          # Drawing engine only, in a browser at http://localhost:1420
+npm run dev:web      # Tablet web app, at http://localhost:1421 (add --host to open it on a tablet)
 npx tauri dev        # Full desktop app with hot reload
 npm test             # Unit tests (Vitest)
 npm run typecheck
@@ -115,12 +127,14 @@ src/
   desktop/             Bridge to the Rust shell
   main.ts              Overlay page: input handling and rendering
   toolbar.ts           Floating toolbar page
+  web.ts               Tablet web app: board, photo, save as image
+web/                   Tablet web app page, manifest, icons and offline support
 src-tauri/
   src/main.rs          Windows, click-through, shortcuts, tray, launch at startup
   capabilities/        Allow-list of what the page may call
   tauri.conf.json
 tests/                 Unit tests for the drawing engine
-.github/workflows/     CI and release builds
+.github/workflows/     CI, release builds and the web app on GitHub Pages
 ```
 
 ### Releasing
@@ -128,6 +142,8 @@ tests/                 Unit tests for the drawing engine
 1. Bump `version` in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`.
 2. Push a tag: `git tag v0.1.0 && git push origin v0.1.0`.
 3. The **Release** workflow builds Windows (x64) and macOS (universal) binaries, writes their checksums, and publishes them. The launchers pick up the new version on their next run.
+
+The tablet web app is published separately: the **Web app** workflow deploys it to GitHub Pages on every push to `main`. Turn this on once under **Settings > Pages > Build and deployment > Source: GitHub Actions**.
 
 ## Known limitations
 

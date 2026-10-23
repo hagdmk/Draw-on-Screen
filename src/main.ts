@@ -28,6 +28,8 @@ let drawing = false;
 let erasing = false;
 /** The pointer drawing in this window. The other overlays share the scene but not the gesture. */
 let gesturePointer: number | null = null;
+/** Set once a pen (Apple Pencil, S Pen) draws; from then on touches are a resting palm. */
+let penSeen = false;
 let frameRequested = false;
 // There is one overlay per screen. Items are stored in desktop coordinates, so a stroke that
 // crosses from one screen to the next lines up on both.
@@ -117,6 +119,8 @@ function eraserRadius(): number {
 
 canvas.addEventListener("pointerdown", (event) => {
   if (!drawing || event.button !== 0 || gesturePointer !== null) return;
+  if (event.pointerType === "pen") penSeen = true;
+  else if (event.pointerType === "touch" && penSeen) return;
   // Capture keeps the stroke coming to this window when the pointer moves onto another screen.
   canvas.setPointerCapture(event.pointerId);
   gesturePointer = event.pointerId;
