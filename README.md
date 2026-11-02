@@ -2,6 +2,8 @@
 
 A lightweight screen annotation tool for macOS and Windows. Draw on top of anything on your screen, then switch back to clicking through to the apps underneath, without losing what you drew. On iPad and Android tablets it installs as a web app for drawing on a board or on a photo.
 
+![Drawing over a slide, then switching back to click-through](docs/images/desktop-demo.gif)
+
 Built with [Tauri 2](https://tauri.app): the drawing engine is TypeScript on an HTML canvas, and the native shell is Rust using the operating system's own web view (WebView2 on Windows, WKWebView on macOS). No browser engine is bundled, so the app stays small and light on memory.
 
 > **Status:** steps 1 to 3 of the development plan, plus parts of 5 and 6: overlay with click-through, floating toolbar, pen, brush, highlighter, line, arrow, rectangle, ellipse, eraser, colors including rainbow, three thicknesses, undo/redo, launch at startup. Text boxes, auto-erase, selection and image export come next.
@@ -35,13 +37,37 @@ chmod +x run-macos.command
 
 ## Using it
 
+<img src="docs/images/toolbar.png" alt="The floating toolbar" width="112" align="right" />
+
 A floating toolbar appears at the right edge of the screen and in the taskbar (Dock on macOS), so you can always see that the app is running. Drag it by the bar at the top; the dash button minimizes it.
+
+The toolbar, from top to bottom:
+
+1. **Draw / Drawing**: switches between drawing and click-through.
+2. **Tools**: pen, brush, highlighter, line, arrow, rectangle, ellipse, eraser (keys `1` to `8`).
+3. **Colors**: eight presets, rainbow, and a custom color.
+4. **Thickness**: thin, medium, thick.
+5. **Undo, redo, clear all, and Settings** (gear).
+
+A typical session:
+
+1. Press `Ctrl+Shift+D` (`Cmd+Shift+D` on macOS), or pick a tool on the toolbar. A "Drawing mode" banner appears at the top of the screen.
+2. Draw over anything: circle a number, point with an arrow, highlight a line.
+3. Press `Esc` or click **Drawing** to go back to click-through. Your drawing stays on screen, and the apps underneath work normally again.
+4. Press `Delete` while drawing, or the trash button, to clear everything.
+
+![Annotations over a slide in drawing mode](docs/images/desktop-drawing.png)
+
+<sub>Screenshots and GIFs come from the app's own pages running in a browser. The desktop images show the real toolbar and drawing layer over a sample slide window, not a capture of an actual macOS or Windows desktop.</sub>
 
 - Pick a tool to start drawing. The **Draw** button switches between drawing and click-through: in click-through mode your drawing stays visible but clicks go to the apps underneath.
 - Tools: pen, brush, highlighter, line, arrow, rectangle, ellipse, eraser (removes whole strokes). Hold `Shift` for straight 45-degree lines, squares and circles.
 - Colors: eight presets, rainbow, and a custom color picker. Three thicknesses.
 - You can draw on every connected screen. Undo, redo and clear apply to all of them.
 - The gear button opens **Settings**:
+
+  <img src="docs/images/settings.png" alt="Settings view of the toolbar" width="124" />
+
   - **Screens**: **One screen** keeps each stroke on the screen where it started, so it stops at the screen edge. **All screens** (the default) lets a stroke or shape carry on when the pointer moves to another screen.
   - **Launch at startup** (on by default; your choice is kept).
   - **Quit**.
@@ -88,9 +114,15 @@ Install it from **https://hagdmk.github.io/Draw-on-Screen/**:
 
 It then opens full screen from its icon and works offline. Updates arrive on their own the next time it opens online.
 
+![Drawing on the board, switching to the dark board, then marking up a photo](docs/images/tablet-demo.gif)
+
 - Draw with Apple Pencil, S Pen or a finger. Once a pen has been used, touches are ignored so your palm can rest on the screen.
 - Extra buttons: **Add photo** (tap again to remove it), **Save as image** (the share sheet offers Save Image or Files; elsewhere it downloads a PNG), and **Board color** (white or dark).
 - The drawing is not kept when the app is closed; save it as an image first.
+
+| Whiteboard | Drawing on a photo |
+| --- | --- |
+| ![Shapes, arrows, highlighter and rainbow brush on the white board](docs/images/tablet-board.png) | ![A worksheet photo marked up with circles, an arrow and a highlight](docs/images/tablet-photo.png) |
 
 ## Build from source
 
